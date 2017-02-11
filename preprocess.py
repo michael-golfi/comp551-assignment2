@@ -4,6 +4,8 @@ import enchant
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
 
+# Assumes that nltk stopwords and lemmatizer are downloaded.
+
 FILENAME = "data/train_input.csv"
 OUTPUT = "data/train_input_edited.csv"
 
@@ -22,6 +24,7 @@ def pre_process(words):
     """
 
     remove_punctuation = re.sub('<[^>]*>|[.,\/#!$%\^&\*;:{}=\-_`~()"\?\']|@\w+', "", words.lower()).strip()
+    #remove_punctuation = re.sub('<[^>]*>|\d+|[.,\/#!$%\^&\*;:{}=\-_`~()"\?\']|@\w+', "", words.lower()).strip()
     strip_whitespace = re.sub(' +', " ", remove_punctuation)
     remove_stopwords = ' '.join([word for word in strip_whitespace.split() if filter(word)])
     return lemma.lemmatize(remove_stopwords)
