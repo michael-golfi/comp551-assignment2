@@ -8,58 +8,41 @@ Authors:
     Zahra Khambaty <zahra.khambaty@mail.mcgill.ca>
 """
 import pandas as pd
-import math
+from math import log
 from collections import Counter
 import numpy as np
 import os.path
-
-"""
-categories = ["hockey", "movies", "nba", "news", "nfl", "politics", "soccer", "worldnews"]
-total_word_count = 0
-totalsPerCategory = {}
-vocabulary = []"""
 
 def word_count(df, column_name):
     words = df[column_name].str.split().tolist()
     return pd.DataFrame(Counter(pd.DataFrame(words).stack()).items(), columns=["word", "count"])
 
-def probabilityIntersect(df, category, word):
-    cat = df.loc[category]
-    return cat[cat["word"] == word]
+def classify(model, testSet, totalWordCount, totalWordsInCategories):
+    found = np.float(0.0)
+    alpha = 1.0
+    
+    predictions = []
+    for i, instance in testSet.iterrows():
+        likelihood = {}
+        for category in model.keys():
+            pWC = 0
 
-def probability(df, word):
-    return df[df["word"] == word]
-
-pd.DataFrame.word_count = word_count
-pd.DataFrame.probabilityIntersect = probabilityIntersect
-pd.DataFrame.probability = probability
-
-def validate(model, testSet):
-    accuratelyFound = 0
-
-    likelihood = dict([ (topic, np.float64(1.0)) for topic in model.keys() ])
-    for index, instance in testSet.iterrows():        
-        
-        for topic in likelihood.keys():
-        #    print "Testing: %s" % instance["conversation"]
-            probability = np.float64(1.0)
             for word in instance["conversation"].split():
-                
-                probability *= np.float64(model[topic][word]) if word in model[topic] else np.float64(1.0)                
-                likelihood[topic] = probability
+
+                if word in model[category]:
+                    pWC += log( (model[category][word] + alpha ) / ( len(model[category]) + totalWordCount + alpha ), 2)
+                else:
+                    pWC += log(alpha / ( len(model[category]) + totalWordCount + alpha ), 2 )
+
+            #print "Category: %s length: %d, WordsInCat: %s, pWC: %f" % (category, len(model[category]), totalWordsInCategories, pWC)
+            likelihood[category] = log(np.float64(len(model[category])) / np.float64(totalWordsInCategories), 2) + pWC
         
-        max_label = min(likelihood.iterkeys(), key=(lambda key: likelihood[key]))
+        max_label = max(likelihood.iterkeys(), key=(lambda key: likelihood[key]))
         #print instance["category"], max_label, likelihood
-
         if instance["category"] == max_label:
-            accuratelyFound += 1
+            found += 1
 
-    return accuratelyFound/float(len(testSet)) * 100.0
-
-def calculate_total_vocabulary(train):
-    totalFrequencies = train.word_count("conversation")
-    totalFrequencies = totalFrequencies[totalFrequencies["count"] > 2]
-    return (totalFrequencies, totalFrequencies["count"].sum())
+    return found/float(len(testSet)) * 100.0
 
 def calculate_probabilities(vocabulary, total_vocab_count, categoryWeights, categories):
     probabilities = {}
@@ -72,7 +55,7 @@ def calculate_probabilities(vocabulary, total_vocab_count, categoryWeights, cate
     for (name, category) in categories:
         words = {}
 
-        categoryWordDf = category.word_count("conversation")
+        categoryWordDf = word_count(category, "conversation")
         categoryWords = categoryWordDf.set_index("word")["count"].to_dict()
         totalWordsPerCategory = np.float64(categoryWordDf["count"].sum())
         
@@ -82,13 +65,15 @@ def calculate_probabilities(vocabulary, total_vocab_count, categoryWeights, cate
                 wordPerCategory = np.float64(categoryWords[word])
                 
                 categoryWeight = np.float64(catWeights[name])
-                wordOccurenceVocab = vocab[word]
+                wordOccurenceVocab = np.float64(vocab[word])
 
-                pWC = np.float64(1.0 + wordPerCategory / totalWordsPerCategory)
-                pC = np.float64(categoryWeight / totalWordsPerCategory)
-                pW = np.float64(1.0 + wordOccurenceVocab / total_vocab_count)
-                words[word] = np.float64(pWC * pC / pW)
-
+                #pWC = np.float64(1.0 + wordPerCategory / totalWordsPerCategory)
+                #pC = np.float64(categoryWeight / totalWordsPerCategory)
+                #pW = np.float64(1.0 + wordOccurenceVocab / total_vocab_count)
+                #words[word] = np.float64((pWC * pC) / pW)
+                alpha = 0.0005
+                words[word] = np.float64( ( wordPerCategory + alpha ) / (totalWordsPerCategory + alpha * total_vocab_count ) )
+                
         probabilities[name] = words
 
     return probabilities
@@ -119,11 +104,23 @@ def main():
     categoryWeights = pd.read_csv(CATEGORYCOUNTS)
 
     print "Calculating probabilities for all classes"
-    probabilities = calculate_probabilities(vocab, vocab_word_count, categoryWeights, train.groupby(["category"]))
+    model = {}
+    instancesInAllModels = 0
+    for (name, category) in train.groupby(["category"]):
+        model[name] = word_count(category, "conversation").set_index("word")["count"].to_dict()
+        instancesInAllModels += len(model[name])
+    
+    print instancesInAllModels
 
-    print "Validating Dataset"
-    accuracy = validate(probabilities, test)
-    print "Found %d accuracy" % accuracy
+    print "Classifying..."
+    acc = classify(model, test, vocab_word_count, instancesInAllModels)
+    print acc
+
+    #probabilities = calculate_probabilities(vocab, vocab_word_count, categoryWeights, train.groupby(["category"]))
+
+    #print "Validating Dataset"
+    #accuracy = validate(probabilities, test)
+    #print "Found %f accuracy" % accuracy
 
 if __name__ == "__main__":
     main()
