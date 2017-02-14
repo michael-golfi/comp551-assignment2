@@ -94,10 +94,12 @@ def calculate_probabilities(vocabulary, total_vocab_count, categoryWeights, cate
     return probabilities
 
 def main():
-    FILENAME = "data/train_input_edited.csv"
+    FILENAME = "data/train_input.csv"
+    CATEGORYCOUNTS = "data/category_count.csv"
+    COUNT_FILE = "data/train_input_count.csv"
     CATEGORY = "data/train_output.csv"
-    COUNT_FILE = "data/train_input_counts.csv"
-    TRAINING_THRESHOLD = 0.7
+    
+    TRAINING_THRESHOLD = 0.8
 
     train_input_X = pd.read_csv(FILENAME, usecols=["conversation"])
     train_input_Y = pd.read_csv(CATEGORY, usecols=["category"])
@@ -109,11 +111,12 @@ def main():
     test = train_input_XY[~cutoff]
 
     print "Count all distinct words in vocabulary"
-    vocab, vocab_word_count = calculate_total_vocabulary(train)
+    vocab = pd.read_csv(COUNT_FILE)
+    vocab_word_count = vocab["count"].sum()
     print "Found %d words in vocabulary" % vocab_word_count
 
     print "Count category occurences"
-    categoryWeights = pd.DataFrame(Counter(pd.DataFrame(train_input_Y).stack()).items(), columns=["category", "count"])
+    categoryWeights = pd.read_csv(CATEGORYCOUNTS)
 
     print "Calculating probabilities for all classes"
     probabilities = calculate_probabilities(vocab, vocab_word_count, categoryWeights, train.groupby(["category"]))
