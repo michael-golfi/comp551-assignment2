@@ -8,13 +8,13 @@ from nltk.stem.wordnet import WordNetLemmatizer
 
 FILENAME = "project data/train_input.csv"
 CATEGORY = "project data/train_output.csv"
-OUTPUT = "output/train_input.csv"
-OUTPUT_OCC = "output/train_input_count.csv"
+OUTPUT = "data/train_input.csv"
+OUTPUT_OCC = "data/train_input_count.csv"
 
 stopWords = stopwords.words('english')
 lemma = WordNetLemmatizer()
 
-filter = lambda x: x not in stopWords and len(x) > 1
+filter = lambda x: x not in stopWords and len(x) > 3
 
 def pre_process(words):
     """
@@ -41,8 +41,9 @@ df["conversation"] = df["conversation"].map(pre_process)
 df.to_csv(OUTPUT)
 
 vocabularyOcc = word_count(df, "conversation")
+print vocabularyOcc
 vocabularyOcc.to_csv(OUTPUT_OCC)
 
 categories = pd.read_csv(CATEGORY)
 categoryCount = word_count(categories, "category")
-categoryCount.to_csv("data/category_count.csv", columns=["category", "count"] index=False)
+categoryCount.to_csv("data/category_count.csv", columns=["category", "count"], index=False)
