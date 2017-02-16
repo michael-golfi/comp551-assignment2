@@ -56,8 +56,6 @@ def train(trainingSet):
 
 def main():
     FILENAME = "data/train_input.csv"
-    CATEGORYCOUNTS = "data/category_count.csv"
-    COUNT_FILE = "data/train_input_count.csv"
     CATEGORY = "data/train_output.csv"
     
     TRAINING_THRESHOLD = 0.7
@@ -72,13 +70,8 @@ def main():
     test = train_input_XY[~cutoff]
 
     print "Count all distinct words in vocabulary"
-    vocab = pd.read_csv(COUNT_FILE)
-
-    vocab_word_count = vocab["count"].sum()
+    vocab_word_count = word_count(train_input_XY, "conversation")["count"].sum()
     print "Found %d words in vocabulary" % vocab_word_count
-
-    print "Count category occurences"
-    categoryWeights = pd.read_csv(CATEGORYCOUNTS)
 
     print "Calculating probabilities for all classes"
     model, instancesInAllModels = train(trainingSet)   

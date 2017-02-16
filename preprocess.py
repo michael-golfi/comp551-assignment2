@@ -7,6 +7,8 @@ from nltk.stem.wordnet import WordNetLemmatizer
 # Assumes that nltk stopwords and lemmatizer are downloaded.
 
 FILENAME = "project data/train_input.csv"
+TEST_INPUT = "project data/test_input.csv"
+TEST_OUTPUT = "data/test_input.csv"
 CATEGORY = "project data/train_output.csv"
 OUTPUT = "data/train_input.csv"
 OUTPUT_OCC = "data/train_input_count.csv"
@@ -40,10 +42,6 @@ df = pd.read_csv(FILENAME)[["id", "conversation"]]
 df["conversation"] = df["conversation"].map(pre_process)
 df.to_csv(OUTPUT)
 
-vocabularyOcc = word_count(df, "conversation")
-print vocabularyOcc
-vocabularyOcc.to_csv(OUTPUT_OCC)
-
-categories = pd.read_csv(CATEGORY)
-categoryCount = word_count(categories, "category")
-categoryCount.to_csv("data/category_count.csv", columns=["category", "count"], index=False)
+testDf = pd.read_csv(TEST_INPUT)[["id", "conversation"]]
+testDf["conversation"] = testDf["conversation"].map(pre_process)
+testDf.to_csv(TEST_OUTPUT)
